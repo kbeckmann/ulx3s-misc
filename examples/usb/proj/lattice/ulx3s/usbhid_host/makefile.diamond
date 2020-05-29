@@ -3,7 +3,7 @@ PROJECT = usbhost_test
 BOARD = ulx3s
 # 12 25 45 85
 FPGA_SIZE = 12
-FPGA_PACKAGE = 6bg381c
+FPGA_PACKAGE = 6bg256c
 # config flash: 1:SPI (standard), 4:QSPI (quad)
 FLASH_SPI = 4
 # chip: is25lp032d is25lp128f s25fl164k
@@ -28,5 +28,6 @@ include files.mk
 
 SCRIPTS = ../../../../../../scripts
 include $(SCRIPTS)/trellis_path.mk
-include $(SCRIPTS)/diamond_path.mk
-include $(SCRIPTS)/diamond_main.mk
+include $(SCRIPTS)/trellis_main.mk
+# include $(SCRIPTS)/diamond_path.mk
+# include $(SCRIPTS)/diamond_main.mk

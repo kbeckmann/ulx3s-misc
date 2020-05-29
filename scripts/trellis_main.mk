@@ -4,7 +4,8 @@ BOARD ?= board
 FPGA_PREFIX ?=
 FPGA_SIZE ?= 12
 FPGA_CHIP ?= lfe5u-$(FPGA_SIZE)f
-FPGA_PACKAGE ?= CABGA381
+FPGA_PACKAGE ?= CABGA256
+ACM_DEVICE?=/dev/ttyACM0
 
 # ******* design files *******
 CONSTRAINTS ?= board_constraints.lpf
@@ -168,6 +169,14 @@ $(BOARD)_$(FPGA_SIZE)f_$(PROJECT).svf: $(BOARD)_$(FPGA_SIZE)f_$(PROJECT).config
 # program SRAM  with ujrprog (temporary)
 program: $(BOARD)_$(FPGA_SIZE)f_$(PROJECT).bit
 	$(UJPROG) $<
+
+program_pergola: $(BOARD)_$(FPGA_SIZE)f_$(PROJECT).bit
+	stty -F $(ACM_DEVICE) 300 raw -clocal -echo icrnl
+	sleep 0.1
+	cat $(ACM_DEVICE) > /dev/null &
+	echo "$(shell stat -c%s $^)" > $(ACM_DEVICE)
+	cat $^ > $(ACM_DEVICE)
+	sync
 
 # program SRAM  with FleaFPGA-JTAG (temporary)
 program_flea: $(BOARD)_$(FPGA_SIZE)f_$(PROJECT).vme

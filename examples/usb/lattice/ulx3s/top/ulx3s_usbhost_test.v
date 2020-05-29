@@ -9,11 +9,11 @@ parameter C_display="ST7789", // "SSD1331", "ST7789"
 parameter C_disp_bits=256,
 // enable ports: 1:enabled, 0:disabled
 parameter C_us2=1, 
-parameter C_us3=1,
-parameter C_us4=1
+parameter C_us3=0,
+parameter C_us4=0
 )
 (
-input wire clk_25mhz,
+input wire clk_16mhz,
 /*
 output wire ftdi_rxd,
 input wire ftdi_txd,
@@ -24,30 +24,33 @@ inout wire ftdi_txden,
 */
 //output wire wifi_rxd,
 //input wire wifi_txd,
-inout wire wifi_en,
-inout wire wifi_gpio0,
+// inout wire wifi_en,
+// inout wire wifi_gpio0,
 //inout wire wifi_gpio2,
 //inout wire wifi_gpio15,
 //inout wire wifi_gpio16,
 output wire [7:0] led,
-input wire [6:0] btn,
+input wire btn,
 //input wire [1:4] sw,
-output wire oled_csn,
-output wire oled_clk,
-output wire oled_mosi,
-output wire oled_dc,
-output wire oled_resn,
+// output wire oled_csn,
+// output wire oled_clk,
+// output wire oled_mosi,
+// output wire oled_dc,
+// output wire oled_resn,
 
-inout wire [27:0] gp,
-inout wire [27:0] gn,
+// inout wire [27:0] gp,
+// inout wire [27:0] gn,
 
-input wire usb_fpga_dp,
+// inout wire usb_dp,
+// inout wire usb_dn,
+
+// input wire usb_fpga_dp,
 inout wire usb_fpga_bd_dp,
 inout wire usb_fpga_bd_dn,
-output wire usb_fpga_pu_dp,
-output wire usb_fpga_pu_dn,
+// output wire usb_fpga_pu_dp,
+// output wire usb_fpga_pu_dn,
 output wire [3:0] gpdi_dp,
-output wire shutdown
+// output wire shutdown
 );
 
 // PMOD with US3 and US4
@@ -67,9 +70,17 @@ wire vga_hsync; wire vga_vsync; wire vga_blank;
 wire [7:0] vga_r; wire [7:0] vga_g; wire [7:0] vga_b;
 wire [1:0] dvid_red; wire [1:0] dvid_green; wire [1:0] dvid_blue; wire [1:0] dvid_clock;
 
-assign shutdown = 0;
+// assign shutdown = 0;
+  wire clk_25mhz;
 
-  clk_25_125_48_6_25 clk_single_pll1
+  clk_16_25 clk_single_pll1
+  (
+    .clk16_i(clk_16mhz),
+    .clk25_o(clk_25mhz)
+  );
+  assign clk_shift = clk_125MHz;
+
+  clk_25_125_48_6_25 clk_single_pll2
   (
     .clk25_i(clk_25mhz),
     .clk125_o(clk_125MHz),
@@ -82,8 +93,8 @@ assign shutdown = 0;
 
   //ftdi_rxd <= wifi_txd;
   //wifi_rxd <= ftdi_txd;
-  assign wifi_en = 1'b1;
-  assign wifi_gpio0 = btn[0];
+  // assign wifi_en = 1'b1;
+  // assign wifi_gpio0 = btn;
   generate if (C_usb_speed == 1'b0) begin: G_low_speed
       assign clk_usb = clk_6MHz;
   end
@@ -96,8 +107,10 @@ assign shutdown = 0;
   generate
     if(C_us2==1)
     begin
-      assign usb_fpga_pu_dp = 1'b0;
-      assign usb_fpga_pu_dn = 1'b0;
+
+      wire usb_fpga_dp = usb_fpga_bd_dp & (~usb_fpga_bd_dn);
+      // assign usb_fpga_pu_dp = 1'b0;
+      // assign usb_fpga_pu_dn = 1'b0;
       usbh_host_hid
       #(
         .C_report_length(C_report_bytes),
@@ -107,7 +120,7 @@ assign shutdown = 0;
       us2_hid_host_inst
       (
         .clk(clk_usb), // 6 MHz for low-speed USB1.0 device or 48 MHz for full-speed USB1.1 device
-        .bus_reset(~btn[0]),
+        .bus_reset(~btn),
         .led(led), // debug output
         //.usb_dif(usb_fpga_bd_dp), // for trellis < 2020-03-08
         .usb_dif(usb_fpga_dp),
@@ -125,8 +138,8 @@ assign shutdown = 0;
   generate
     if(C_us3==1)
     begin
-      assign gp[23] = 1'b0; // pull down
-      assign gn[23] = 1'b0; // pull down
+      // assign gp[23] = 1'b0; // pull down
+      // assign gn[23] = 1'b0; // pull down
       usbh_host_hid
       #(
         .C_report_length(C_report_bytes),
@@ -136,11 +149,11 @@ assign shutdown = 0;
       us3_hid_host_inst
       (
         .clk(clk_usb), // 6 MHz for low-speed USB1.0 device or 48 MHz for full-speed USB1.1 device
-        .bus_reset(~btn[0]),
+        .bus_reset(~btn),
         .led(), // debug output
-        .usb_dif(gp[21]),
-        .usb_dp(gp[25]),
-        .usb_dn(gn[25]),
+        // .usb_dif(gp[21]),
+        .usb_dp(usb_dp),
+        .usb_dn(usb_dn),
         .hid_report(S_report[1]),
         .hid_valid(S_valid[1])
       );
@@ -164,7 +177,7 @@ assign shutdown = 0;
       us4_hid_host_inst
       (
         .clk(clk_usb), // 6 MHz for low-speed USB1.0 device or 48 MHz for full-speed USB1.1 device
-        .bus_reset(~btn[0]),
+        .bus_reset(~btn),
         .led(), // debug output
         .usb_dif(gp[20]),
         .usb_dp(gp[24]),
@@ -217,7 +230,7 @@ assign shutdown = 0;
   lcd_video_inst
   (
     .clk(clk_25MHz),
-    .reset(~btn[0]),
+    .reset(~btn),
     .x(disp_x),
     .y(disp_y),
     .color(disp_color),
@@ -261,7 +274,7 @@ assign shutdown = 0;
   lcd_video_inst
   (
     .clk(clk_125MHz),
-    .reset(~btn[0]),
+    .reset(~btn),
     .x(disp_x),
     .y(disp_y),
     .color(disp_color),
@@ -271,7 +284,7 @@ assign shutdown = 0;
     .spi_dc(oled_dc),
     .spi_resn(oled_resn)
   );
-  assign oled_csn = spi_csn | ~btn[1];
+  // assign oled_csn = spi_csn | ~btn[1];
   end
   endgenerate
 

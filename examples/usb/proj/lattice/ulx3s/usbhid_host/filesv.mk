@@ -1,5 +1,6 @@
 VERILOG_FILES = $(TOP_MODULE_FILE) \
   $(CLK0_FILE_NAME) \
+  $(CLK1_FILE_NAME) \
   ../../../../../hex/decoder/hex_decoder_v.v \
   ../../../../../lcd_st7789/hdl/st7789_video_verilog/lcd_video.v \
   ../../../../usbhost/usbh_sie.v \
